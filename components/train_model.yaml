@@ -1,0 +1,40 @@
+name: train-model
+description: A component to simulate model training.
+inputs:
+- name: processed_data
+  type: Dataset
+  description: 'Path to the processed data.'
+- name: logic_script_path
+  type: String
+  description: 'GCS path to the train_model_logic.py script.' # New input for script path
+outputs:
+- name: trained_model
+  type: Model
+  description: 'Path to the trained model.'
+- name: training_metrics
+  type: Artifact
+  description: 'Path to the training metrics.'
+implementation:
+  container:
+    image: google/cloud-sdk:latest  # Use an image that has gsutil and python
+    command:
+    - sh
+    - -c
+    - |
+      set -e
+
+      # Install Python dependencies
+      pip install pandas google-cloud-storage scikit-learn --break-system-packages
+
+      gsutil cp $0 /app/train_model.py
+
+      # Execute the Python script, passing inputs and outputs as arguments
+      python3 /app/train_model.py \
+      --processed-data-path "$1" \
+      --trained-model-path "$2" \
+      --training-metrics-path "$3"
+    args:
+    - {inputValue: logic_script_path}         
+    - {inputPath: processed_data}              
+    - {outputPath: trained_model}             
+    - {outputPath: training_metrics}

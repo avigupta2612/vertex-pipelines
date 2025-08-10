@@ -1,0 +1,42 @@
+name: prepare-data
+description: A component to simulate data preparation.
+inputs:
+  - name: raw_data_path
+    type: String
+    description: GCS path to the raw input data.
+  - name: logic_script_path
+    type: String
+    description: GCS path to the Python script containing the component logic.
+outputs:
+  - name: processed_data
+    type: Dataset
+    description: Path to the processed data.
+  - name: preprocessing_report
+    type: Artifact
+    description: Path to the preprocessing report.
+implementation:
+  container:
+    image: google/cloud-sdk:latest  # Use an image that has gsutil and python
+    command:
+    - sh
+    - -c
+    - |
+      set -e
+      pip install pandas google-cloud-storage --break-system-packages
+      gsutil cp $0 /app/prepare_data.py
+      echo "--- Arguments Received by Component ---"
+      echo "Script GCS Path (\$0): $0"
+      echo "Raw Data Path (\$1): $1"
+      echo "Processed Data Output Path (\$2): $2"
+      echo "Preprocessing Report Output Path (\$3): $3"
+      echo "------------------------------------"
+      python3 /app/prepare_data.py \
+        --raw-data-path "$1" \
+        --processed-data-path "$2" \
+        --preprocessing-report-path "$3"
+    args: [
+      {inputValue: logic_script_path},
+      {inputValue: raw_data_path},
+      {outputPath: processed_data},
+      {outputPath: preprocessing_report}
+    ]
